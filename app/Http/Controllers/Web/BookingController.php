@@ -23,10 +23,11 @@ class BookingController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'field_id' => 'required|exists:fields,id',
-            'booking_date' => 'required|date|after_or_equal:today',
-            'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i|after:start_time',
+            'field_id'       => 'required|exists:fields,id',
+            'booking_date'   => 'required|date|after_or_equal:today',
+            'start_time'     => 'required|date_format:H:i',
+            'end_time'       => 'required|date_format:H:i|after:start_time',
+            'payment_method' => 'required|in:transfer,cash',
         ]);
 
         $field = Field::findOrFail($request->field_id);
@@ -47,31 +48,37 @@ class BookingController extends Controller
                 }
 
                 $start = Carbon::parse($request->start_time);
-                $end = Carbon::parse($request->end_time);
+                $end   = Carbon::parse($request->end_time);
                 $hours = $end->diffInHours($start);
                 if ($hours == 0) $hours = 1;
 
                 $totalPrice = $hours * $field->price_per_hour;
 
                 $booking = Booking::create([
-                    'user_id' => Auth::id(),
-                    'field_id' => $field->id,
+                    'user_id'      => Auth::id(),
+                    'field_id'     => $field->id,
                     'booking_date' => $request->booking_date,
-                    'start_time' => $request->start_time . ':00',
-                    'end_time' => $request->end_time . ':00',
-                    'status' => 'pending',
-                    'total_price' => $totalPrice,
+                    'start_time'   => $request->start_time . ':00',
+                    'end_time'     => $request->end_time . ':00',
+                    'status'       => 'pending',
+                    'total_price'  => $totalPrice,
                 ]);
 
                 Payment::create([
-                    'booking_id' => $booking->id,
-                    'amount' => $totalPrice,
-                    'status' => 'pending',
-                    'payment_method' => 'transfer',
+                    'booking_id'     => $booking->id,
+                    'amount'         => $totalPrice,
+                    'status'         => 'pending',
+                    'payment_method' => $request->payment_method,
                 ]);
 
                 return $booking;
             });
+
+            // Kalau bayar di tempat, langsung ke riwayat — tidak perlu upload bukti
+            if ($request->payment_method === 'cash') {
+                return redirect()->route('bookings.history')
+                    ->with('success', 'Booking berhasil! Silakan bayar di tempat saat datang.');
+            }
 
             return redirect()->route('bookings.upload', $booking->id)
                 ->with('success', 'Booking berhasil dibuat! Silakan upload bukti pembayaran.');

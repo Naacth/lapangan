@@ -52,23 +52,70 @@
         <div class="card">
             <div class="card-body p-4">
                 <h5 class="fw-bold mb-3">Bukti Pembayaran</h5>
-                @if($booking->payment->payment_proof)
-                    <img src="{{ Storage::url($booking->payment->payment_proof) }}" class="img-fluid rounded mb-3" style="max-height: 350px; border: 2px solid #E2E8F0;">
-                    <table class="table table-borderless table-sm mb-0">
-                        <tr>
-                            <td class="text-muted" style="width:40%">Status Pembayaran</td>
-                            <td><span class="badge-{{ $booking->payment->status ?? 'pending' }}">{{ ucfirst($booking->payment->status ?? 'pending') }}</span></td>
-                        </tr>
-                        @if($booking->payment->verified_at)
-                        <tr>
-                            <td class="text-muted">Diverifikasi Pada</td>
-                            <td class="small">{{ \Carbon\Carbon::parse($booking->payment->verified_at)->format('d M Y, H:i') }}</td>
-                        </tr>
-                        @endif
-                    </table>
+
+                {{-- Metode pembayaran --}}
+                <div class="mb-3">
+                    @if(($booking->payment->payment_method ?? 'transfer') === 'cash')
+                        <span class="badge bg-warning text-dark fs-6">
+                            <i class="bi bi-cash-coin me-1"></i> Bayar di Tempat
+                        </span>
+                        <p class="text-muted small mt-2 mb-0">Customer memilih bayar langsung saat datang. Tidak ada bukti transfer.</p>
+                    @else
+                        <span class="badge bg-info text-dark fs-6">
+                            <i class="bi bi-bank me-1"></i> Transfer Bank
+                        </span>
+                    @endif
+                </div>
+
+                @if(($booking->payment->payment_method ?? 'transfer') === 'cash')
+                    {{-- Bayar di tempat: tidak perlu bukti --}}
+                    <div class="alert alert-warning mb-3">
+                        <i class="bi bi-clock me-2"></i>Konfirmasi booking ini setelah customer datang dan membayar.
+                    </div>
+                @elseif($booking->payment->payment_proof)
+                    {{-- Coba Storage::url() dulu, fallback ke route storage-file --}}
+                    @php
+                        $imgUrl = file_exists(public_path('storage/' . $booking->payment->payment_proof))
+                            ? asset('storage/' . $booking->payment->payment_proof)
+                            : route('storage.file', urlencode($booking->payment->payment_proof));
+                    @endphp
+                    <img src="{{ $imgUrl }}"
+                         class="img-fluid rounded mb-3"
+                         style="max-height:350px; border:2px solid #E2E8F0; cursor:pointer;"
+                         onclick="window.open(this.src,'_blank')"
+                         title="Klik untuk buka gambar penuh"
+                         onerror="this.src='{{ route('storage.file', urlencode($booking->payment->payment_proof)) }}'">
+                    <div class="text-muted small mb-3">
+                        <i class="bi bi-zoom-in me-1"></i>Klik gambar untuk memperbesar
+                    </div>
                 @else
-                    <div class="alert alert-warning mb-0"><i class="bi bi-hourglass me-2"></i>Customer belum upload bukti pembayaran.</div>
+                    <div class="alert alert-warning mb-3">
+                        <i class="bi bi-hourglass me-2"></i>Customer belum upload bukti pembayaran.
+                    </div>
                 @endif
+
+                <table class="table table-borderless table-sm mb-0">
+                    <tr>
+                        <td class="text-muted" style="width:40%">Status Pembayaran</td>
+                        <td><span class="badge-{{ $booking->payment->status ?? 'pending' }}">{{ ucfirst($booking->payment->status ?? 'pending') }}</span></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Metode</td>
+                        <td class="fw-600">
+                            @if(($booking->payment->payment_method ?? 'transfer') === 'cash')
+                                <i class="bi bi-cash-coin text-warning me-1"></i>Bayar di Tempat
+                            @else
+                                <i class="bi bi-bank text-info me-1"></i>Transfer Bank
+                            @endif
+                        </td>
+                    </tr>
+                    @if($booking->payment->verified_at)
+                    <tr>
+                        <td class="text-muted">Diverifikasi Pada</td>
+                        <td class="small">{{ \Carbon\Carbon::parse($booking->payment->verified_at)->format('d M Y, H:i') }}</td>
+                    </tr>
+                    @endif
+                </table>
             </div>
         </div>
         @endif

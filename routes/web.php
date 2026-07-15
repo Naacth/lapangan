@@ -8,11 +8,23 @@ use App\Http\Controllers\Web\Admin\DashboardController;
 use App\Http\Controllers\Web\Admin\FieldController as AdminFieldController;
 use App\Http\Controllers\Web\Admin\BookingController as AdminBookingController;
 use App\Http\Controllers\Web\Admin\ReportController as AdminReportController;
+use Illuminate\Support\Facades\Storage;
 
 // Public Routes
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/fields/{id}', [HomeController::class, 'field'])->name('fields.show');
 Route::get('/fields/{id}/availability', [HomeController::class, 'checkAvailability'])->name('fields.availability');
+
+// Storage fallback — serve file langsung jika symlink tidak tersedia (Hostinger)
+Route::get('/storage-file/{path}', function ($path) {
+    $path = urldecode($path);
+    if (!Storage::disk('public')->exists($path)) {
+        abort(404);
+    }
+    $file     = Storage::disk('public')->get($path);
+    $mimeType = Storage::disk('public')->mimeType($path);
+    return response($file, 200)->header('Content-Type', $mimeType);
+})->where('path', '.*')->name('storage.file');
 
 // Auth Routes
 Route::middleware('guest')->group(function () {

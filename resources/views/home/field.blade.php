@@ -180,6 +180,40 @@
                                 <input type="time" name="end_time" class="form-control" value="{{ old('end_time') }}" id="formEnd" required>
                             </div>
                         </div>
+
+                        {{-- Metode Pembayaran --}}
+                        <div class="mb-3">
+                            <label class="form-label fw-600">Metode Pembayaran</label>
+                            <div class="d-flex gap-2">
+                                <label class="payment-method-card flex-fill {{ old('payment_method','transfer') === 'transfer' ? 'selected' : '' }}" id="methodTransferLabel">
+                                    <input type="radio" name="payment_method" value="transfer" class="d-none" id="methodTransfer" {{ old('payment_method','transfer') === 'transfer' ? 'checked' : '' }}>
+                                    <div class="p-3 border rounded-3 text-center" style="cursor:pointer; border-color: var(--method-border-transfer, #E2E8F0) !important; background: var(--method-bg-transfer, #fff); transition:all .2s;">
+                                        <i class="bi bi-bank fs-4 text-info d-block mb-1"></i>
+                                        <div class="fw-700 small">Transfer Bank</div>
+                                        <div class="text-muted" style="font-size:0.7rem;">Upload bukti bayar</div>
+                                    </div>
+                                </label>
+                                <label class="payment-method-card flex-fill {{ old('payment_method') === 'cash' ? 'selected' : '' }}" id="methodCashLabel">
+                                    <input type="radio" name="payment_method" value="cash" class="d-none" id="methodCash" {{ old('payment_method') === 'cash' ? 'checked' : '' }}>
+                                    <div class="p-3 border rounded-3 text-center" style="cursor:pointer; border-color: var(--method-border-cash, #E2E8F0) !important; background: var(--method-bg-cash, #fff); transition:all .2s;">
+                                        <i class="bi bi-cash-coin fs-4 text-warning d-block mb-1"></i>
+                                        <div class="fw-700 small">Bayar di Tempat</div>
+                                        <div class="text-muted" style="font-size:0.7rem;">Bayar saat datang</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        {{-- Info transfer — tampil kalau metode transfer --}}
+                        <div id="transferInfo" class="alert alert-info small py-2 mb-3 {{ old('payment_method') === 'cash' ? 'd-none' : '' }}">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Setelah booking, kamu akan diminta upload bukti transfer.
+                        </div>
+                        {{-- Info cash --}}
+                        <div id="cashInfo" class="alert alert-warning small py-2 mb-3 {{ old('payment_method') === 'cash' ? '' : 'd-none' }}">
+                            <i class="bi bi-geo-alt me-1"></i>
+                            Bayar langsung di kasir/admin lapangan saat datang.
+                        </div>
                         <div id="pricePreview" class="booking-summary mb-3 d-none">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
@@ -275,5 +309,36 @@ function updatePrice() {
 
 document.getElementById('formStart')?.addEventListener('change', updatePrice);
 document.getElementById('formEnd')?.addEventListener('change', updatePrice);
+
+// Payment method toggle
+function initPaymentMethod() {
+    const radios = document.querySelectorAll('input[name="payment_method"]');
+    radios.forEach(radio => {
+        radio.addEventListener('change', () => {
+            const isCash = document.getElementById('methodCash').checked;
+            // Info boxes
+            document.getElementById('transferInfo').classList.toggle('d-none', isCash);
+            document.getElementById('cashInfo').classList.toggle('d-none', !isCash);
+            // Card highlight
+            document.getElementById('methodTransferLabel').querySelector('div')
+                .style.borderColor = isCash ? '#E2E8F0' : '#2563EB';
+            document.getElementById('methodTransferLabel').querySelector('div')
+                .style.background  = isCash ? '#fff' : '#EFF6FF';
+            document.getElementById('methodCashLabel').querySelector('div')
+                .style.borderColor = isCash ? '#F59E0B' : '#E2E8F0';
+            document.getElementById('methodCashLabel').querySelector('div')
+                .style.background  = isCash ? '#FFFBEB' : '#fff';
+        });
+    });
+    // Set initial state
+    const isCash = document.getElementById('methodCash')?.checked;
+    if (!isCash) {
+        document.getElementById('methodTransferLabel')?.querySelector('div') &&
+        (document.getElementById('methodTransferLabel').querySelector('div').style.borderColor = '#2563EB');
+        document.getElementById('methodTransferLabel')?.querySelector('div') &&
+        (document.getElementById('methodTransferLabel').querySelector('div').style.background  = '#EFF6FF');
+    }
+}
+initPaymentMethod();
 </script>
 @endpush
